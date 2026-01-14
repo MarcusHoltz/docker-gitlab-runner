@@ -1,0 +1,14 @@
+# ============================================================
+# Default Configuration for All Jobs
+# ============================================================
+# The '.default' section is used to define a base configuration
+# for jobs. This defines the ID tokens used by the pipeline for
+# authentication with GitLab.
+
+.default:
+  # This is useful if you need the CI job to have specific 
+  # credentials (like access tokens) for interacting with the GitLab API.
+  id_tokens:
+    CI_JOB_TOKEN:
+      aud: https://gitlab.com
+  image: alpine:latest
