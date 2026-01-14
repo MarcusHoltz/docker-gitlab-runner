@@ -1,0 +1,63 @@
+# ============================================================================
+# traefik.yml - STATIC CONFIGURATION
+# ============================================================================
+# Documentation: https://doc.traefik.io/traefik/reference/static-configuration/file/
+# Purpose: Defines the permanent entrypoints and providers for the proxy.
+
+################################################################
+# GLOBAL SETTINGS
+################################################################
+global:
+  checkNewVersion: true              # Periodically check for Traefik updates.
+  sendAnonymousUsage: false          # Disable telemetry data sharing with Traefik Labs.
+
+################################################################
+# LOGGING
+################################################################
+log: # Citation: https://doc.traefik.io/traefik/reference/install-configuration/observability/logs-and-accesslogs/
+  level: INFO                        # Log levels: DEBUG, INFO, WARN, ERROR, FATAL.
+
+################################################################
+# ENTRYPOINTS (The Listening Ports)
+################################################################
+entryPoints: # Citation: https://doc.traefik.io/traefik/reference/install-configuration/entrypoints/
+  
+  # --- [ Port 80: HTTP ] ---
+  web:                               # Internal handle for the HTTP entrypoint.
+    address: ":80"                   # Listen for incoming traffic on port 80.
+    http:                            # Protocol-specific settings.
+      redirections:
+        entryPoint:                  # Automated global redirect to HTTPS.
+          to: websecure              # Target the 'websecure' entrypoint.
+          scheme: https              # Force the protocol change to HTTPS.
+
+  # --- [ Port 443: HTTPS ] ---
+  websecure:                         # Internal handle for the HTTPS entrypoint.
+    address: ":443"                  # Listen for incoming traffic on port 443.
+    # Note: TrustedIPs are injected via CLI flags in docker-compose.yml to remain dynamic.
+
+################################################################
+# PROVIDERS (The Source of Routing Rules)
+################################################################
+providers: # Citation: https://doc.traefik.io/traefik/reference/install-configuration/providers/overview/
+  
+  # --- [ Docker Provider ] ---
+  # Docs: https://doc.traefik.io/traefik/reference/install-configuration/providers/docker/
+  docker:                            # Enable Traefik to read Docker container labels.
+    endpoint: "unix:///var/run/docker.sock" # Communication path to the Docker engine.
+    exposedByDefault: false          # Prevent accidental exposure of containers lacking labels.
+    watch: true                      # Actively monitor for container starts/stops.
+    # Note: The 'network' variable is injected via CLI flags in docker-compose.yml.
+
+  # --- [ File Provider ] ---
+  # Docs: https://doc.traefik.io/traefik/reference/install-configuration/providers/others/file/
+  file:                              # Enable reading supplemental YAML files.
+    filename: "/etc/traefik/dynamic.yml" # Path to the dynamic configuration (middlewares/certs).
+    watch: true                      # Reload settings immediately when the file changes.
+
+################################################################
+# API & DASHBOARD
+################################################################
+api: # Citation: https://doc.traefik.io/traefik/reference/install-configuration/api-dashboard/
+  dashboard: false                   # Enable the web-based UI for monitoring routes.
+  insecure: true                     # Allows access to the dashboard via port 8080.
