@@ -1,0 +1,54 @@
+# ============================================================================
+# dynamic.yml - DYNAMIC CONFIGURATION (FILE PROVIDER)
+# ============================================================================
+# Documentation: https://doc.traefik.io/traefik/routing/providers/file/
+# Purpose: Defines routing rules, middlewares, and transports that can be 
+#          updated without restarting the Traefik container.
+
+tls:
+  certificates:
+    # Citation: https://doc.traefik.io/traefik/v2.5/providers/file/
+    # "Traefik supports using Go templating... augmented with the Sprig template functions"
+    # Using {{ env "VARNAME" }} to read environment variables via Sprig's env function
+    - certFile: /etc/letsencrypt/live/{{ env "DOMAIN_NAME" }}/fullchain.pem
+      keyFile: /etc/letsencrypt/live/{{ env "DOMAIN_NAME" }}/privkey.pem
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/letsencrypt/live/{{ env "DOMAIN_NAME" }}/fullchain.pem
+        keyFile: /etc/letsencrypt/live/{{ env "DOMAIN_NAME" }}/privkey.pem
+
+http: # Citation: https://doc.traefik.io/traefik/routing/overview/
+
+  # --- [ SERVERS TRANSPORT ] ---
+  # Docs: https://doc.traefik.io/traefik/routing/services/#serverstransport
+  # Purpose: Configures how Traefik communicates with backend services (like GitLab).
+  serversTransports: # Citation: https://doc.traefik.io/traefik/routing/services/#serverstransport
+    
+    # ignorecert: A custom identifier used in docker-compose labels (ignorecert@file).
+    ignorecert: # Identifier for use in service labels.
+      
+      # Citation: https://doc.traefik.io/traefik/routing/services/#insecureskipverify
+      # Purpose: Allows Traefik to connect to backends over HTTPS even if the backend 
+      #          uses a self-signed certificate or one that doesn't match the internal 
+      #          hostname. This is critical because GitLab often uses internal 
+      #          certificates for its bundled NGINX service.
+      insecureSkipVerify: true # Disables SSL certificate validation for this transport.
+
+  # --- [ MIDDLEWARES ] ---
+  # Docs: https://doc.traefik.io/traefik/middlewares/overview/
+  # Purpose: Middlewares are "filters" that can modify requests before they reach 
+  #          the backend or modify responses before they reach the client.
+  middlewares: # Citation: https://doc.traefik.io/traefik/middlewares/overview/
+    
+    # Secure Headers Example:
+    # Docs: https://doc.traefik.io/traefik/middlewares/http/headers/
+    secure-headers: # Custom name for the middleware.
+      headers: # Citation: https://doc.traefik.io/traefik/middlewares/http/headers/
+        sslRedirect: true              # Forces a redirect to HTTPS at the middleware level.
+        browserXssFilter: true         # Adds 'X-XSS-Protection: 1; mode=block' header.
+        contentTypeNosniff: true       # Adds 'X-Content-Type-Options: nosniff' header.
+        forceSTSHeader: true           # Enables Strict-Transport-Security (HSTS).
+        stsSeconds: 31536000           # Sets HSTS duration to 1 year.
+        stsIncludeSubdomains: true     # Applies HSTS to all subdomains.
+        stsPreload: true               # Allows the domain to be submitted to HSTS preload lists.
