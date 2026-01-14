@@ -228,30 +228,26 @@ git commit -m "Initial commit"
 git push --set-upstream origin main
 ```
 
-> That should move our existing files into your new repository on GitLab.
+> Once you git pushed - you should see your new files in GitLab.
 
 
 * * *
 
 ## 5). Weather CI/CD Demo
 
-Once you pushed to a new repo you should see some new files in there.
-
 This project demonstrates GitLab CI/CD pipelines with interactive user input.
-
-There should be some image instructions to go along with this here.
 
 
 * * *
 
-## Getting Started
+### Getting Weather CI/CD Demo Running
 
 1. **Set up your API key**:
    - Get a free API key from [OpenWeatherMap](https://openweathermap.org/api)
    - Add it in **Settings → CI/CD → Variables**
    - Click **Add variable**
    - Enter the **Key** as `WEATHER_API_KEY`
-   - Enter the **Value** as `Your API key`
+   - Enter the **Value** with the free API key you got from OpenWeatherMap
    - Save changes
 
 2. **Run your first pipeline**:
