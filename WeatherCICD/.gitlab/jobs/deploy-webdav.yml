@@ -1,0 +1,70 @@
+# ============================================================
+# WebDAV Deployment Job
+# ============================================================
+# Manual action to deploy to production server via WebDAV
+# Production server details must be entered in the variables
+# when running this job manually
+
+include:
+  - local: '.gitlab/variables-webdav.yml'     # WEBDAV VARIABLES - WebDAV deployment configuration
+
+deploy_production_webdav:
+  stage: deploy
+  image: alpine:latest
+
+  script:
+    - |
+      echo "=========================================="
+      echo "Deploying to production via WebDAV"
+      echo "=========================================="
+      echo "Configuration:"
+      echo "  - WEBDAV_URL: ${WEBDAV_URL}"
+      echo "  - WEBDAV_USERNAME: ${WEBDAV_USERNAME}"
+      echo "  - WEBDAV_DEPLOY_DIRECTORY: ${WEBDAV_DEPLOY_DIRECTORY}"
+      echo "  - WEBDAV_PRODUCTION_SERVER: ${WEBDAV_PRODUCTION_SERVER}"
+      echo "=========================================="
+
+      # Install required WebDAV, network tools, and pandoc
+      apk add --no-cache davfs2 curl pandoc
+
+      echo "Converting README.md to index.html using Pandoc..."
+      sed '/^---/,$d' README.md | sed -n '/## Latest/,$p' | pandoc -o index.html --standalone --metadata title="Weather Report"
+
+      echo "Configuring davfs2..."
+      mkdir -p /etc/davfs2
+      echo "${WEBDAV_URL} ${WEBDAV_USERNAME} ${WEBDAV_PASSWORD}" > /etc/davfs2/secrets
+      chmod 600 /etc/davfs2/secrets
+
+      echo "Setting up WebDAV mount directory..."
+      mkdir -p /mnt/webdav
+
+      echo "Mounting WebDAV server..."
+      mount -t davfs "${WEBDAV_URL}" /mnt/webdav
+
+      echo "Transferring HTML file to the WebDAV server..."
+      cp ./index.html "/mnt/webdav/${WEBDAV_DEPLOY_DIRECTORY}/index.html"
+
+      echo "Unmounting WebDAV..."
+      umount /mnt/webdav
+
+      echo "============================================================="
+      echo "Deployment to test prod via WebDAV completed successfully!"
+      echo "============================================================="
+
+  artifacts:
+    paths:
+      - index.html
+    expire_in: 1 week
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "webdav" || $CI_COMMIT_REF_NAME == "webdav" || $CI_COMMIT_TAG =~ /^deploy-staging-/'
+
+
+  environment:
+    name: webdav_deployment  # Name of the environment (production)
+    url: "${WEBDAV_PRODUCTION_SERVER}"  # Use the environment variable for the production server URL
+
+
+#  when: manual
+
+#  allow_failure: true

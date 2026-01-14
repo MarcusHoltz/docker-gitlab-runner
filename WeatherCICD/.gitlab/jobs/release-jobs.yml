@@ -1,0 +1,23 @@
+# ============================================================
+# Release Jobs
+# ============================================================
+# Jobs that only run on tags (releases)
+
+create_release_notes:
+  stage: .post
+  image: alpine:latest
+
+  script:
+    - |
+      echo "=========================================="
+      echo "Creating release notes for tag: ${CI_COMMIT_TAG}"
+      echo "=========================================="
+      echo "This release includes weather data functionality"
+      echo "Version: ${CI_COMMIT_TAG}"
+      echo "Commit: ${CI_COMMIT_SHA}"
+      echo "=========================================="
+
+  rules:
+    - if: '$CI_COMMIT_TAG'
+
+  allow_failure: true

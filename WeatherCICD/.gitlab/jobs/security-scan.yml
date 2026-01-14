@@ -1,0 +1,82 @@
+#############################
+# 0. Variables You Can Edit #
+#############################
+variables:
+  ZAP_REPORT_DIR:
+    value: "reports"
+    description: "ZAP directory where the reports will be saved."
+
+include:
+  - local: '.gitlab/variables-git.yml'    # GIT PIPELINE VARIABLES - User-configurable parameters
+
+
+############################
+# 1. ZAP Security Scan Job #
+############################
+zap_security_scan:
+  stage: security
+  image: docker:23.0.1
+  services:
+    - docker:23.0.1-dind
+  script:
+    - apk add --no-cache bash coreutils
+    - mkdir -p "$ZAP_REPORT_DIR"
+    - DOMAIN=$(echo "$WEBDAV_PRODUCTION_SERVER" | sed 's_https\?://__' | sed 's_/__g')
+    # Run ZAP in a Docker container, mounting reports dir as /zap/wrk
+    - |
+      set +e
+      docker run --rm \
+        -u $(id -u):$(id -g) \
+        -v "$CI_PROJECT_DIR/$ZAP_REPORT_DIR":/zap/wrk \
+        zaproxy/zap-stable \
+        zap-baseline.py -t "$WEBDAV_PRODUCTION_SERVER" -r "${DOMAIN}.html"
+      ZAP_EXIT=$?
+      if [ "$ZAP_EXIT" -eq 2 ]; then
+        echo "ZAP scan completed with warnings, treating as success for CI."
+        exit 0
+      else
+        exit $ZAP_EXIT
+      fi
+  artifacts:
+    paths:
+      - $ZAP_REPORT_DIR/*.html
+    expire_in: 1 week
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "webdav" || $CI_COMMIT_REF_NAME == "webdav" || $CI_COMMIT_TAG == "webdav"'
+#  rules:
+#    - when: manual
+
+
+###############################################
+# 2. Commit Artifact Back Into the Repository #
+###############################################
+
+commit_zap_report:
+  stage: security
+  image: alpine:latest
+  needs:
+    - job: zap_security_scan
+      artifacts: true
+  dependencies:
+    - zap_security_scan
+  before_script:
+    - apk add --no-cache git
+  script:
+    - git config --global user.email "$GIT_USER_EMAIL"
+    - git config --global user.name "$GIT_USER_NAME"
+    # Set the remote with CI job token for authentication
+    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+    # Ensure we're on the latest branch, not detached HEAD
+    - git fetch origin $CI_COMMIT_REF_NAME
+    - git checkout $CI_COMMIT_REF_NAME
+    - git pull origin $CI_COMMIT_REF_NAME
+    - git add "$ZAP_REPORT_DIR"/*
+    - git commit -m "Add ZAP scan report for $WEBDAV_PRODUCTION_SERVER [ci skip]" || echo "Nothing to commit"
+    - git push origin HEAD:$CI_COMMIT_REF_NAME
+#  rules:
+#    - when: manual
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "webdav" || $CI_COMMIT_REF_NAME == "webdav" || $CI_COMMIT_TAG == "webdav"'
+      when: on_success

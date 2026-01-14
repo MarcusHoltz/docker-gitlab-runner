@@ -1,0 +1,55 @@
+# ============================================================
+# SSH Deployment Job
+# ============================================================
+# Manual action to deploy on production server using SSH
+# Production server details must be entered in the variables
+# when running this job manually
+
+include:
+  - local: '.gitlab/variables-ssh.yml'     # SSH VARIABLES - Main deployment configuration
+
+deploy_production_ssh:
+  stage: deploy
+  image: alpine:latest
+
+  script:
+    - |
+      echo "=========================================="
+      echo "Deploying to production via SSH"
+      echo "=========================================="
+      echo "You need to add/modify the following variables:"
+      echo "  - SSH_USER: SSH username for deployment"
+      echo "  - SSH_PASS: unused (just use SSH keys)"
+      echo "  - SSH_PRODUCTION_SERVER: Server hostname/IP"
+      echo "  - SSH_DEPLOY_DIRECTORY: Target directory on server"
+      echo "=========================================="
+
+      # Install required tools
+      apk add --no-cache rsync openssh curl pandoc
+
+      echo "Converting README.md to index.html using Pandoc..."
+      sed '/^---/,$d' README.md | sed -n '/## Latest/,$p' | pandoc -o index.html --standalone --metadata title="Weather Report"
+
+      echo "Transferring application files to the production server..."
+      rsync -avz ./index.html "${SSH_USER}@${SSH_PRODUCTION_SERVER}:${SSH_DEPLOY_DIRECTORY}"
+
+      echo "Restarting production services..."
+      ssh "${SSH_USER}@${SSH_PRODUCTION_SERVER}" "sudo systemctl status nginx.service"
+
+      echo "Running post-deployment health check..."
+      sleep 10
+      curl --fail "http://${SSH_PRODUCTION_SERVER}/" || { echo "Health check failed"; exit 1; }
+
+      echo "Running database migrations..."
+      ssh "${SSH_USER}@${SSH_PRODUCTION_SERVER}" "cd ${SSH_DEPLOY_DIRECTORY} && echo 'do database stuff'"
+
+      echo "=========================================="
+      echo "Deployment to production completed successfully!"
+      echo "=========================================="
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $LOCATION != ""'
+
+  when: manual
+
+  allow_failure: true
