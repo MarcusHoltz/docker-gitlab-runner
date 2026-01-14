@@ -1,0 +1,6 @@
+# ============================================================
+# WORKFLOW RULES BELOW - Controls when the pipeline runs
+# ============================================================
+#
+include:
+  - local: '.gitlab/workflow.yml'
