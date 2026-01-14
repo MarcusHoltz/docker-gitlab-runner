@@ -17,7 +17,7 @@ To find the article that goes along with this guide, visit:
 
 ## The Architecture at a Glance
 
-Before we dive in, here is how the traffic flows through your stack:
+Before we dive in, here is how the traffic flows through this stack:
 
 - **Traefik:** Acts as the traffic cop, handling SSL termination and routing.
 
