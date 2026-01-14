@@ -1,0 +1,23 @@
+# ============================================================
+# SSH Deployment Variables Configuration
+# ============================================================
+# Define SSH-specific variables for secure deployments
+# These variables are used when running the pipeline manually for SSH deployment
+# Make sure to keep sensitive information secure and use masked variables where appropriate
+
+variables:
+  SSH_USER:
+    value: "secure_ssh_deploy_user"
+    description: "SSH user for secure deployments (ensure this user has minimal access with deploy permissions)."
+  
+  SSH_PASS:
+    value: ""
+    description: "SSH password (use CI/CD masked variables for production for better security)."
+  
+  SSH_DEPLOY_DIRECTORY:
+    value: "/var/www/html"
+    description: "SSH server directory path where the files will be deployed (adjust for your server setup)."
+  
+  SSH_PRODUCTION_SERVER:
+    value: "production-server.example.com"
+    description: "SSH server hostname, URL, or IP address for deployment and health checks (e.g., 'example.com')."

@@ -1,0 +1,18 @@
+# ============================================================
+# Pipeline Variables Configuration
+# ============================================================
+# Define variables with user-friendly descriptions and options
+# These will create a form when running the pipeline manually
+
+variables:
+  LOCATION:
+    value: "Spokane"
+    description: "Weather location to fetch (e.g., 'Tokyo', 'New York, USA', 'Paris, France')."
+  
+  WEATHER_UNITS:
+    value: "imperial"
+    description: "Weather temperature units (metric=Celsius, imperial=Fahrenheit, kelvin=Kelvin)."
+    options:
+      - "metric"    # Celsius
+      - "imperial"  # Fahrenheit
+      - "kelvin"    # Kelvin

@@ -1,0 +1,50 @@
+# ============================================================
+# Workflow Rules Configuration
+# ============================================================
+# This section defines when the pipeline should run.
+# This pipeline will only be triggered when it is  
+# manually started and only via the GitLab web UI.
+#
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "schedule"'
+
+
+# ============================================================
+# Main GitLab CI/CD Pipeline Configuration
+# INCLUDE ALL JOBS - Default settings for all jobs
+# ============================================================
+include:
+  - local: '.gitlab/defaults.yml'             # BASE CONFIGURATION - Default settings for all jobs
+  - local: '.gitlab/jobs/weather-jobs.yml'    # WEATHER PIPELINE JOBS - Main weather functionality
+  - local: '.gitlab/jobs/deploy-ssh.yml'      # DEPLOYMENT VIA SSH - Production deployment option
+  - local: '.gitlab/jobs/deploy-webdav.yml'   # DEPLOYMENT VIA WEBDAV - Production deployment option
+  - local: '.gitlab/jobs/release-jobs.yml'    # RELEASE JOBS - Tag-based release automation
+  - local: '.gitlab/jobs/security-scan.yml'   # SECURITY SCAN - OWASP ZAP vulnerability scanning
+
+
+# ============================================================
+# PIPELINE STAGES - Defines the order of execution
+# ============================================================
+stages:
+  - validate   # Check if location is valid
+  - fetch      # Get weather data
+  - update     # Update README with weather info
+  - deploy     # Deployment jobs
+  - security   # Security scanning after deployment
+
+
+
+# ============================================================
+# VARIABLE OVERRIDES (OPTIONAL)
+# You can override variables from included files here
+# ============================================================
+###########
+# Example #
+###########
+#
+# variables:
+#   PRODUCTION_SERVER: "my-custom-server.com"
+#   DEPLOY_DIRECTORY: "/custom/path"
+#
+#

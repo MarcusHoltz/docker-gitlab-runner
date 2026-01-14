@@ -1,0 +1,27 @@
+# ============================================================
+# WebDAV Deployment Variables Configuration
+# ============================================================
+# Define WebDAV-specific variables with user-friendly descriptions
+# These variables are only available when running on webdav branch/tag
+# They will create a form when running the pipeline manually
+
+variables:
+  WEBDAV_URL:
+    value: "https://www.website.hosting:8080"
+    description: "WebDAV server URL (e.g., 'https://nextcloud.example.com/remote.php/webdav')."
+
+  WEBDAV_USERNAME:
+    value: "myname@mydomain.com"
+    description: "WebDAV authentication username for server access."
+
+  WEBDAV_PASSWORD:
+    value: "9msu89csb0rc90sma40m48c6h7b340"
+    description: "WebDAV authentication password (use CI/CD masked variables for production)."
+
+  WEBDAV_DEPLOY_DIRECTORY:
+    value: "/var/www/html/weather"
+    description: "WebDAV server directory path where the file(s) will be deployed to."
+
+  WEBDAV_PRODUCTION_SERVER:
+    value: "https://www.example.net/weather"
+    description: "WebDAV server hostname, URL, or IP for pre-release security scanning (e.g., 'example.com')."
