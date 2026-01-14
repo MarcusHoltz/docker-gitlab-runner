@@ -8,6 +8,8 @@ Getting your own self-hosted DevSecOps platform running doesn't have to be a hea
 
 This guide will get you a professional-grade **GitLab CE** instance, secured with **TLS (HTTPS)** via Traefik, a pre-configured **GitLab Runner**, and a **CI/CD pipeline** project, in under 15 minutes.
 
+To find the article that goes along with this guide, visit: [blog.holtzweb.com/posts/gitlab-on-docker-with-runners-and-tls-for-the-homelab](https://blog.holtzweb.com/posts/gitlab-on-docker-with-runners-and-tls-for-the-homelab/)
+
 
 * * *
 
