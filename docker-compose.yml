@@ -1,0 +1,107 @@
+---
+services:
+  certbot:
+    image: certbot/dns-cloudflare:latest
+    container_name: certbot_generator
+    user: root
+    volumes:
+      - ./certbot/cloudflare.ini:/secrets/cloudflare.ini:ro
+      - ./appdata/certbot/config:/etc/letsencrypt
+      - ./appdata/certbot/logs:/var/log/letsencrypt
+    # Docs: https://eff-certbot.readthedocs.io/en/stable/using.html#dns-plugins
+    command: >-
+      certonly
+      --dns-cloudflare
+      --dns-cloudflare-credentials /secrets/cloudflare.ini
+      --dns-cloudflare-propagation-seconds 20
+      --email ${ACME_EMAIL}
+      --agree-tos
+      --no-eff-email
+      --non-interactive
+      -d ${DOMAIN_NAME}
+      -d *.${DOMAIN_NAME}
+
+  traefik:
+    image: traefik:latest
+    container_name: traefik_proxy
+    restart: unless-stopped
+    # Docs: https://doc.traefik.io/traefik/providers/file/#go-templating
+    # DOMAIN_NAME must be explicitly passed for {{ env }} templates in dynamic.yml
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./appdata/certbot/config:/etc/letsencrypt:ro
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+      - "--providers.docker.network=${DOCKER_NETWORK_NAME}"
+      - "--entrypoints.websecure.forwardedHeaders.trustedIPs=${INTERNAL_SUBNET},127.0.0.1/32"
+    networks:
+      vpc:
+        ipv4_address: 172.20.0.81
+
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab_ce
+    hostname: ${GITLAB_SUBDOMAIN}.${DOMAIN_NAME}
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Docs: https://docs.docker.com/compose/use-secrets/
+    secrets:
+      - gitlab_root_password
+    ports:
+      - "${GITLAB_SSH_PORT}:22"
+    volumes:
+      - ./gitlab/gitlab.rb:/etc/gitlab/gitlab.rb:ro
+      - ./appdata/gitlab/config:/etc/gitlab:rw
+      - ./appdata/gitlab/data:/var/opt/gitlab:rw
+      - ./appdata/gitlab/logs:/var/log/gitlab:rw
+      - ./appdata/certbot/config:/etc/letsencrypt:ro
+      - ${BACKUP_PATH}:/var/opt/gitlab/backups:rw
+    shm_size: '256m'
+    networks:
+      vpc:
+        ipv4_address: 172.20.0.82
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitlab.rule=Host(`${GITLAB_SUBDOMAIN}.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.gitlab.entrypoints=websecure"
+      - "traefik.http.routers.gitlab.tls=true"
+      - "traefik.http.services.gitlab.loadbalancer.server.scheme=https"
+      - "traefik.http.services.gitlab.loadbalancer.server.port=443"
+      - "traefik.http.services.gitlab.loadbalancer.serverstransport=ignorecert@file"
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab_runner
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Docs: https://docs.gitlab.com/runner/configuration/tls-self-signed.html
+    environment:
+      - CI_SERVER_TLS_CA_FILE=/etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem
+    volumes:
+      - ./appdata/gitlab-runner/config:/etc/gitlab-runner
+      - ./appdata/certbot/config:/etc/letsencrypt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - vpc
+
+networks:
+  vpc:
+    name: ${DOCKER_NETWORK_NAME}
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${INTERNAL_SUBNET}
+
+# Docs: https://docs.docker.com/compose/use-secrets/
+secrets:
+  gitlab_root_password:
+    file: ./secrets/gitlab_root_password.txt
