@@ -1,0 +1,93 @@
+# ============================================================
+# Weather Pipeline Jobs
+# ============================================================
+# These jobs handle location validation, weather fetching, 
+# and README updates
+# NICE!
+
+include:
+  - local: '.gitlab/variables-weather.yml'    # WEATHER PIPELINE VARIABLES - User-configurable parameters
+
+# ------------------------------------------------------------
+# Stage 1: Validate the location
+# ------------------------------------------------------------
+validate_location:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - pip install geopy
+  script:
+    - |
+      if [ -z "$WEATHER_API_KEY" ]; then
+        echo "ERROR: WEATHER_API_KEY not set in project variables!"
+        echo "Please add it in Settings -> CI/CD -> Variables"
+        exit 1
+      fi
+      echo "Validating location: $LOCATION"
+      python validate_location.py
+  rules:
+    - if: '$LOCATION != ""'
+  artifacts:
+    paths:
+      - validated_location.txt
+    expire_in: 1 hour
+
+# ------------------------------------------------------------
+# Stage 2: Fetch weather data
+# ------------------------------------------------------------
+fetch_weather:
+  stage: fetch
+  image: python:3.11-slim
+  before_script:
+    - pip install requests
+  script:
+    - echo "Fetching weather data..."
+    - python fetch_weather.py
+  rules:
+    - if: '$LOCATION != ""'
+  artifacts:
+    paths:
+      - weather_data.txt
+    expire_in: 1 hour
+  dependencies:
+    - validate_location
+
+# ------------------------------------------------------------
+# Stage 3: Update README
+# Manual on main/webdav branches, automatic on other branches
+# ------------------------------------------------------------
+update_readme:
+  stage: update
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git
+  script:
+    - echo "Hello, $GITLAB_USER_LOGIN!"
+    - echo "Updating README.md with weather data..."
+    - sh update_readme.sh
+    - |
+      git config user.email "$GIT_USER_EMAIL"
+      git config user.name "$GIT_USER_NAME"
+      git remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+      git add README.md
+      git commit -m "Update weather data [skip ci]" || echo "No changes to commit"
+      git push origin HEAD:${CI_COMMIT_REF_NAME}
+  dependencies:
+    - fetch_weather
+  # This section controls when the 'update_readme' job will run:
+  # - If the branch is in our production branches, 'main' or 'webdav', 
+  #   this job will require manual intervention.
+  # - For all other branches, presuming testing, it will run 
+  #   automatically after the previous jobs are successful.
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $LOCATION != ""'
+      when: manual  # Requires manual intervention for 'main' branch
+    - if: '$CI_COMMIT_BRANCH == "webdav" && $LOCATION != ""'
+#      when: manual  # Requires manual intervention for 'webdav' branch
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_BRANCH != "webdav" && $LOCATION != ""'
+      when: on_success  # Runs automatically for any other branch
+    - when: never  # Default, never runs unless one of the above rules matches
+  artifacts:
+    paths:
+      - README.md
+    expire_in: 1 hour
