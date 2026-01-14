@@ -137,13 +137,6 @@ I would say, to let everything get everything settled, run this command and walk
 
 * * *
 
-#### Problems?
-
-See the [Help section](#) at the end
-
-
-* * *
-
 ## 3.) Runner Registration Script
 
 Usually, registering a runner is a manual chore of copying tokens. I have automated this with the `register_gitlab_runner.sh` script.
