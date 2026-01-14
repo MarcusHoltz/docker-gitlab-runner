@@ -47,7 +47,7 @@ The first step is to leave this write-up and go to another website.
 
 Cloudflare can provide a nameserver for almost any domain, allowing us to use Cloudflare's API to create temporary TXT records for SSL domain validation.
 
-For help with creating a Token in Cloudflare, watch this [LinuxCloudHacks video](https://youtu.be/NziF6Srh-08?si=j6HHxMJCfz-hYkZp&t=388) for a quick how-to.
+For help with creating a Token in Cloudflare, visit [Cloudflare's docs on creating a token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) for a quick how-to.
 
 Once you have the token,
 
@@ -150,31 +150,143 @@ Once GitLab is healthy (you can reach the login page), run:
 register_gitlab_runner.sh
 ```
 
-**What this script does for you:**
 
-1. **Wait:** It polls the GitLab API until it's actually ready.
-2. **Auth:** It enters the GitLab container and generates a temporary Personal Access Token.
-3. **Register:** It fetches a Runner Registration Token and links the `gitlab-runner` container to your instance.
-4. **Connect:** It configures the runner to use the Docker executor, allowing it to run CI/CD jobs.
+* * *
+
+### What the register_gitlab_runner.sh script does for you
+
+- **Wait:** It polls the GitLab API until it's actually ready.
+
+- **Auth:** It enters the GitLab container and generates a temporary Personal Access Token.
+
+- **Register:** It fetches a Runner Registration Token and links the `gitlab-runner` container to your instance.
+
+- **Connect:** It configures the runner to use the Docker executor, allowing it to run CI/CD jobs.
 
 
 * * *
 
-### Login and Verify Runner
+### Login to GitLab and Verify Runner
 
-1. Navigate to `https://gitlab.yourdomain.com`.
+- Navigate to `https://gitlab.yourdomain.com`.
 
-2. Log in with username **root** and the password you put in your secrets file.
+- Log in with username **root** and the password you put in your secrets file.
 
-3. Go to **Admin Area > CI/CD > Runners**. You should see your `homelab-hybrid-runner` online and ready!
+- Go to **Admin Area > CI/CD > Runners**. You should see your `homelab-hybrid-runner` online and ready!
 
 
 * * *
 
 ## 4). Your First Project
 
+With your recent sucess of logging into GitLab, we should do something with it.
+
+I have provided a gitlab-ci pipeline to do exactly that!
+
+- Login to GitLab, if not already
+
+- In the upper right hand corner of the screen is a `+` icon, click it
+
+- In this new GitLab menu, click `New project/repository`
+
+- On the new screen click on `Create blank project`
+
+- Enter a `project name`
+
+- Under the **Project URL** use the drop down for `Pick a group or namespace` to select an option (probably just `root`)
+
+- Under **Project Configuration** `uncheck` - Initialize repository with a README
+
+- Click on `Create project`
+
+- On this new screen, with your newly minted repo, head down to the `Add files`
+
+- Click on `HTTPS`
+
+- We want to `Configure the Git repository` for our **WeatherCICD** folder, copy and paste these commands somewhere
 
 
+* * *
+
+### Git Push the WeatherCICD
+
+With a new reposity to hold our files, we can put the WeatherCICD into GitLab.
+
+- Find the `WeatherCICD` folder in the working directory we've been using for `docker-compose.yml`
+
+- Once inside the `WeatherCICD` folder,
+
+- Here you can use the commands we copied from your new repository
+
+- They should look like
+
+```bash
+git init --initial-branch=main --object-format=sha1
+git remote add origin https://<your-domain>/<user>/<repo>.git
+git add .
+git commit -m "Initial commit"
+git push --set-upstream origin main
+```
+
+> That should move our existing files into your new repository on GitLab.
+
+
+* * *
+
+## 5). Weather CI/CD Demo
+
+Once you pushed to a new repo you should see some new files in there.
+
+This project demonstrates GitLab CI/CD pipelines with interactive user input.
+
+There should be some image instructions to go along with this here.
+
+
+* * *
+
+## Getting Started
+
+1. **Set up your API key**:
+   - Get a free API key from [OpenWeatherMap](https://openweathermap.org/api)
+   - Add it in **Settings → CI/CD → Variables**
+   - Click **Add variable**
+   - Enter the **Key** as `WEATHER_API_KEY`
+   - Enter the **Value** as `Your API key`
+   - Save changes
+
+2. **Run your first pipeline**:
+   - Go to **Build → Pipelines**
+   - Click **New Pipeline**
+   - Fill out the form with your desired location
+   - Click **New Pipeline**
+
+3. **Watch the magic happen**:
+   - See real-time logs
+   - Watch as nothing happens
+   - The 'main' branch has manual builds
+   - To fix: Make a new branch below
+   - Or click: The stuck job card or **run** (play) button in your current pipeline
+
+4. **Make a new Branch**:
+   - To push a new README.md automatically to the repository
+   - You need to make a new branch not named, 'main' or 'webdav'
+   - Go to **Code → Branches**
+   - Click **New Branch**
+   - Fill out the form with your desired branch name **(be sure to 'create from' `main`)**
+   - Click **Create Branch**
+
+5. **Run a pipeline in a branch**:
+   - Go to **Build → Pipelines**
+   - Click **New Pipeline**
+   - Look in the upper left hand corner of this form
+   - **Run for branch name or tag**
+   - Select the branch you made
+   - Fill out the form with your desired location
+   - Click **New Pipeline**
+
+6. **Watch your README.md change**:
+   - See real-time logs
+   - Visit your README.md for the changes
 
 
 
